@@ -1936,7 +1936,11 @@ enum {
 	VID_OPT_BPP,
 	VID_OPT_REFRESHRATE,
 	VID_OPT_FULLSCREEN,
+	VID_OPT_DESKTOP_FULLSCREEN,
 	VID_OPT_VSYNC,
+	GL_OPT_TEXTUREMODE,
+	GL_OPT_ANISOTROPY,
+	GL_OPT_RENDERSCALE,
 	VID_OPT_TEST,
 	VID_OPT_APPLY,
 	VIDEO_OPTIONS_ITEMS
@@ -1960,6 +1964,11 @@ static int vid_menu_numrates=0;
 
 static int vid_menu_displays[MAX_DIS_LIST];
 static int vid_menu_numdisplays = 0;
+
+static int vid_menu_numfilters = 6;
+static int filter_index = 0;
+
+static int vid_menu_numrscale = 4;
 
 /*
 ================
@@ -2253,7 +2262,7 @@ static void VID_Menu_ChooseNextDisplay(int dir)
 	}
 	else
 	{
-		i += dir;
+		i -= dir; //This list isn't built in reverse
 		if (i >= vid_menu_numdisplays)
 			i = 0;
 		else if (i < 0)
@@ -2265,6 +2274,60 @@ static void VID_Menu_ChooseNextDisplay(int dir)
 	VID_Menu_Init();
 	VID_Menu_RebuildBppList();
 	VID_Menu_RebuildRateList();
+}
+
+/*
+================
+VID_Menu_ChooseNextFilter
+
+chooses next filter in order, then updates gl_texturemode cvar
+================
+*/
+static void VID_Menu_ChooseNextFilter(int dir)
+{
+	int i;
+	filter_index = glmode_idx;
+
+	for (i = 0; i < vid_menu_numfilters; i++)
+	{
+		if ( i == filter_index)
+			break;
+	}
+
+	if (i == vid_menu_numfilters) //can't find it in list
+	{
+		i = 0;
+	}
+	else
+	{
+		i -= dir; //This list isn't built in reverse
+		if (i >= vid_menu_numfilters)
+			i = 0;
+		else if (i < 0)
+			i = vid_menu_numfilters - 1;
+	}
+	filter_index = i;
+	char arg[2] = "0";
+	arg[0] = '1' + (char)filter_index;
+	Cvar_SetQuick(&gl_texturemode, &arg);
+}
+
+/*
+================
+VID_Menu_ChooseNextRenderScale
+
+chooses next r_scale in order, then updates r_scale cvar
+================
+*/
+static void VID_Menu_ChooseNextRenderScale(int dir)
+{
+	int i = r_scale.value;
+	i -= dir; //This list isn't built in reverse
+	if (i > vid_menu_numrscale)
+		i = 1;
+	else if (i < 1)
+		i = vid_menu_numrscale;
+	Cvar_SetValue("r_scale", i);
 }
 
 /*
@@ -2318,8 +2381,25 @@ static void VID_MenuKey (int key)
 		case VID_OPT_FULLSCREEN:
 			Cbuf_AddText ("toggle vid_fullscreen\n");
 			break;
+		case VID_OPT_DESKTOP_FULLSCREEN:
+			Cbuf_AddText("toggle vid_desktopfullscreen\n");
+			break;
 		case VID_OPT_VSYNC:
 			Cbuf_AddText ("toggle vid_vsync\n"); // kristian
+			break;
+		case GL_OPT_TEXTUREMODE:
+			VID_Menu_ChooseNextFilter (1);
+			break;
+		case GL_OPT_ANISOTROPY:
+			if (gl_texture_anisotropy.value > 1) {
+				Cvar_SetValue("gl_texture_anisotropy", 1);
+			}
+			else {
+				Cvar_SetValue("gl_texture_anisotropy", 16);
+			}
+			break;
+		case GL_OPT_RENDERSCALE:
+			VID_Menu_ChooseNextRenderScale(1);
 			break;
 		default:
 			break;
@@ -2347,8 +2427,25 @@ static void VID_MenuKey (int key)
 		case VID_OPT_FULLSCREEN:
 			Cbuf_AddText ("toggle vid_fullscreen\n");
 			break;
+		case VID_OPT_DESKTOP_FULLSCREEN:
+			Cbuf_AddText("toggle vid_desktopfullscreen\n");
+			break;
 		case VID_OPT_VSYNC:
 			Cbuf_AddText ("toggle vid_vsync\n");
+			break;
+		case GL_OPT_TEXTUREMODE:
+			VID_Menu_ChooseNextFilter(-1);
+			break;
+		case GL_OPT_ANISOTROPY:
+			if (gl_texture_anisotropy.value > 1) {
+				Cvar_SetValue("gl_texture_anisotropy", 1);
+			}
+			else {
+				Cvar_SetValue("gl_texture_anisotropy", 16);
+			}
+			break;
+		case GL_OPT_RENDERSCALE:
+			VID_Menu_ChooseNextRenderScale(-1);
 			break;
 		default:
 			break;
@@ -2378,8 +2475,25 @@ static void VID_MenuKey (int key)
 		case VID_OPT_FULLSCREEN:
 			Cbuf_AddText ("toggle vid_fullscreen\n");
 			break;
+		case VID_OPT_DESKTOP_FULLSCREEN:
+			Cbuf_AddText("toggle vid_desktopfullscreen\n");
+			break;
 		case VID_OPT_VSYNC:
 			Cbuf_AddText ("toggle vid_vsync\n");
+			break;
+		case GL_OPT_TEXTUREMODE:
+			VID_Menu_ChooseNextFilter(1);
+			break;
+		case GL_OPT_ANISOTROPY:
+			if (gl_texture_anisotropy.value > 1) {
+				Cvar_SetValue("gl_texture_anisotropy", 1);
+			}
+			else {
+				Cvar_SetValue("gl_texture_anisotropy", 16);
+			}
+			break;
+		case GL_OPT_RENDERSCALE:
+			VID_Menu_ChooseNextRenderScale(1);
 			break;
 		case VID_OPT_TEST:
 			Cbuf_AddText ("vid_test\n");
@@ -2427,9 +2541,9 @@ static void VID_MenuDraw (void)
 	title = "Video Options";
 	M_PrintWhite ((320-8*strlen(title))/2, y, title);
 
-	y += 16;
+	y += 12;
 
-	// options
+	// video options
 	for (i = 0; i < VIDEO_OPTIONS_ITEMS; i++)
 	{
 		switch (i)
@@ -2437,7 +2551,7 @@ static void VID_MenuDraw (void)
 #if defined(USE_SDL2)
 		case VID_OPT_DISPLAY:
 			M_Print(16, y, "        Display");
-			M_Print(184, y, va("%i", (int)vid_display.value));
+			M_Print(184, y, va("%i (%s)", (int)vid_display.value, (int)vid_display.value ? "Secondary" : "Primary"));
 			break;
 #endif
 		case VID_OPT_MODE:
@@ -2456,6 +2570,10 @@ static void VID_MenuDraw (void)
 			M_Print (16, y, "        Fullscreen");
 			M_DrawCheckbox (184, y, (int)vid_fullscreen.value);
 			break;
+		case VID_OPT_DESKTOP_FULLSCREEN:
+			M_Print(16, y, "       Window Type");
+			M_Print(184, y, va("%s", (int)vid_desktopfullscreen.value ? "Windowed" : "Exclusive") );
+			break;
 		case VID_OPT_VSYNC:
 			M_Print (16, y, "     Vertical sync");
 			if (gl_swap_control)
@@ -2463,12 +2581,39 @@ static void VID_MenuDraw (void)
 			else
 				M_Print (184, y, "N/A");
 			break;
+		case GL_OPT_TEXTUREMODE:
+			y += 8;
+			title = "Graphics Options";
+			M_PrintWhite((320 - 8 * strlen(title)) / 2, y, title);
+			y += 12;
+			M_Print(16, y, "         Filtering");
+			if (filter_index < 3) {
+				M_Print(184, y, va("Nearest %i", filter_index + 1));
+			}
+			else {
+				M_Print(184, y, va("Linear %i", filter_index - 2));
+			}
+			
+			break;
+		case GL_OPT_ANISOTROPY:
+			M_Print(16, y, "       Anisotropic");
+			M_Print(184, y, va("%s", (int)gl_texture_anisotropy.value > 1 ? "On (16x)" : "Off"));
+			break;
+		case GL_OPT_RENDERSCALE:
+			M_Print(16, y, "      Pixelization");
+			if (r_scale.value == 1) {
+				M_Print(184, y, "None");
+			}
+			else {
+				M_Print(184, y, va("x%i", (int)r_scale.value));
+			}
+			break;
 		case VID_OPT_TEST:
 			y += 8; //separate the test and apply items
-			M_Print (16, y, "      Test changes");
+			M_Print(16, y, "      Test changes");
 			break;
 		case VID_OPT_APPLY:
-			M_Print (16, y, "     Apply changes");
+			M_Print(16, y, "     Apply changes");
 			break;
 		}
 
@@ -2486,6 +2631,7 @@ VID_Menu_f
 */
 static void VID_Menu_f (void)
 {
+	filter_index = glmode_idx;
 	key_dest = key_menu;
 	m_state = m_video;
 	m_entersound = true;

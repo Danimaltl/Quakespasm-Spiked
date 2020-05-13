@@ -179,6 +179,10 @@ extern	cvar_t	gl_polyblend;
 extern	cvar_t	gl_flashblend;
 extern	cvar_t	gl_nocolors;
 
+extern  cvar_t	gl_texturemode;
+extern  cvar_t	gl_texture_anisotropy;
+extern  int     glmode_idx;
+
 extern	cvar_t	gl_playermip;
 
 extern	cvar_t	gl_subdivide_size;
